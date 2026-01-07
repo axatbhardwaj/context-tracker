@@ -22,8 +22,8 @@ Automated context tracking plugin for Claude Code that captures what changed and
 ### Quick Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-context-tracker.git
-cd claude-context-tracker
+git clone https://github.com/axatbhardwaj/cc-context-tracker-plugin.git
+cd cc-context-tracker-plugin
 ./install.sh
 ```
 
@@ -51,8 +51,8 @@ For scripted installs, use flags to skip prompts:
 
 1. **Clone the plugin:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/claude-context-tracker.git ~/claude-context-tracker
-   ln -s ~/claude-context-tracker ~/.claude/plugins/user/context-tracker
+   git clone https://github.com/axatbhardwaj/cc-context-tracker-plugin.git ~/cc-context-tracker-plugin
+   ln -s ~/cc-context-tracker-plugin ~/.claude/plugins/user/context-tracker
    ```
 
 2. **Add hook to Claude settings:**
@@ -63,7 +63,7 @@ For scripted installs, use flags to skip prompts:
        "Stop": [{
          "hooks": [{
            "type": "command",
-           "command": "CLAUDE_PLUGIN_ROOT=~/claude-context-tracker python3 ~/claude-context-tracker/hooks/stop.py",
+           "command": "CLAUDE_PLUGIN_ROOT=~/cc-context-tracker-plugin python3 ~/cc-context-tracker-plugin/hooks/stop.py",
            "timeout": 30
          }]
        }]
