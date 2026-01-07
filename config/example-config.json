@@ -1,18 +1,18 @@
 {
   "context_root": "~/context",
   "work_path_patterns": [
-    "/home/xzat/valory/",
-    "/home/xzat/work/"
+    "~/work/",
+    "~/company/"
   ],
   "personal_path_patterns": [
-    "/home/xzat/personal/",
-    "/home/xzat/projects/"
+    "~/personal/",
+    "~/projects/"
   ],
   "excluded_paths": [
     "/tmp/",
-    "/home/xzat/Downloads/",
-    "/home/xzat/.cache/",
-    "/home/xzat/.local/share/Trash/"
+    "~/Downloads/",
+    "~/.cache/",
+    "~/.local/share/Trash/"
   ],
   "git_config": {
     "auto_commit": true,
