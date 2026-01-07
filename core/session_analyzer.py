@@ -431,20 +431,39 @@ CATEGORY: <category>"""
         try:
             # 2k tokens sufficient for goal(200) + summary(400) + decisions(400) + problems(400) + future(400) + tags(200)
             response = self.llm_client.generate(prompt, max_tokens=2000)
-            return self._parse_context_response(response)
+            if not response or not response.strip():
+                logger.info("LLM returned empty response, using fallback")
+                return self._fallback_context(changes)
+            ctx = self._parse_context_response(response)
+            # If parse produced empty summary, use fallback
+            if not ctx.summary:
+                logger.info("LLM response parsed to empty context, using fallback")
+                return self._fallback_context(changes)
+            return ctx
         except Exception as e:
             logger.warning(f"Failed to extract session context: {e}")
             return self._fallback_context(changes)
 
-    def _get_full_transcript(self) -> str:
-        """Get full transcript content for analysis."""
+    def _get_full_transcript(self, max_chars: int = 50000) -> str:
+        """Get transcript content for analysis, truncated to fit context limits.
+
+        Args:
+            max_chars: Maximum characters (default 50k ~12k tokens)
+
+        Returns:
+            Truncated transcript content
+        """
         transcript_path = self.input_data.get('transcript_path')
         if not transcript_path or not Path(transcript_path).exists():
             return ""
 
         try:
             with open(transcript_path, 'r') as f:
-                return f.read()
+                content = f.read()
+                if len(content) > max_chars:
+                    # Take last portion for recency
+                    return content[-max_chars:]
+                return content
         except (IOError, OSError):
             return ""
 
