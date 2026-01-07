@@ -23,24 +23,9 @@ class LLMClient:
             config: LLM configuration
         """
         self.config = config
-        # Sonnet 4.5 provides deeper reasoning via extended thinking (10k token budget)
-        self.model = config.get('model', 'claude-sonnet-4-5-20250514')
-        # 20k tokens allows full session transcript analysis without truncation
+        self.model = config.get('model', 'sonnet')
         self.max_tokens = config.get('max_tokens', 20000)
-        # 10k thinking budget balances quality vs cost; adds 5-10s latency (user-specified balance)
-        self.thinking_budget = config.get('thinking_budget', 10000)
         self._claude_path = shutil.which('claude')
-        self.extended_thinking_available = self._check_extended_thinking()
-
-    def _check_extended_thinking(self) -> bool:
-        """Check if claude CLI supports extended thinking parameters.
-
-        Returns True if claude CLI binary exists; fallback handles unsupported flags gracefully.
-        """
-        if not self._claude_path:
-            return False
-        # Assume modern CLI supports extended thinking; generate() handles failure
-        return True
 
     def generate(self, prompt: str, max_tokens: int = None) -> str:
         """Generate text using Claude Code CLI with Sonnet.
@@ -59,13 +44,10 @@ class LLMClient:
         try:
             cmd = [
                 self._claude_path,
-                '-p', prompt,
-                '--model', self.model
+                '--print',
+                '--model', self.model,
+                prompt
             ]
-
-            # Extended thinking requires --thinking-budget flag with token count
-            if self.extended_thinking_available and self.thinking_budget > 0:
-                cmd.extend(['--thinking-budget', str(self.thinking_budget)])
 
             result = subprocess.run(
                 cmd,
