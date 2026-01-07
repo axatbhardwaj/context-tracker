@@ -45,8 +45,7 @@ class LLMClient:
             cmd = [
                 self._claude_path,
                 '-p', prompt,
-                '--model', self.model,
-                '--no-input'
+                '--model', self.model
             ]
 
             result = subprocess.run(
