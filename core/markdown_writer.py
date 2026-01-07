@@ -205,3 +205,45 @@ class MarkdownWriter:
 
         wiki_file.write_text('\n'.join(parts))
         return wiki_file
+
+    def write_session_log(
+        self,
+        context_dir: Path,
+        topics: List[str],
+        changes: List[FileChange],
+        reasoning: str,
+        context: Optional[SessionContext] = None,
+    ) -> Path:
+        """Write immutable session log to history directory.
+
+        Args:
+            project_path: Full path to project
+            classification: 'work' or 'personal'
+            topics: List of topics
+            changes: List of changes
+            reasoning: Reasoning
+            context: Rich context
+
+        Returns:
+            Path to session log file
+        """
+        history_dir = context_dir / "history"
+
+        ensure_directory(history_dir)
+
+        # Fallback topics
+        if not topics:
+            topics = ["general"]
+
+        # Create filename: YYYY-MM-DD_HH-MM_topic.md
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d_%H-%M")
+        topic_slug = topics[0].lower().replace(" ", "-")
+        filename = f"{date_str}_{topic_slug}.md"
+
+        log_file = history_dir / filename
+
+        entry = self._format_session_entry(topics, changes, reasoning, context)
+        log_file.write_text(entry)
+
+        return log_file
