@@ -10,9 +10,12 @@ Automated context tracking plugin that captures file changes and reasoning from 
 | ----------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
 | `hooks/stop.py`         | Session capture hook, topic detection, LLM analysis orchestration  | Debugging session capture, understanding hook flow                |
 | `core/session_analyzer.py` | File change extraction, LLM-based context extraction with extended thinking | Modifying session analysis logic, adding new analysis features |
-| `core/markdown_writer.py` | Consolidated context.md writer with topic tagging              | Changing output format, debugging file writes                     |
+| `core/wiki_parser.py`   | Wiki markdown parser, WikiKnowledge dataclass                      | Modifying wiki format, debugging parse failures                   |
+| `core/wiki_merger.py`   | Session-to-wiki merge logic, deduplication, rotation               | Changing merge behavior, tuning similarity threshold              |
+| `core/markdown_writer.py` | Wiki and session format writer with structured sections         | Changing output format, debugging file writes                     |
 | `core/topic_detector.py` | File-to-topic mapping, topic detection rules                      | Adding new topics, modifying detection patterns                   |
 | `core/git_sync.py`      | Git commit and push automation                                     | Debugging git operations, modifying sync behavior                 |
+| `core/README.md`        | Wiki architecture, data flow, design decisions                     | Understanding wiki system design                                  |
 | `utils/llm_client.py`   | Claude CLI wrapper with extended thinking support                  | Changing LLM configuration, debugging API calls                   |
 | `utils/file_utils.py`   | File system helpers, directory creation                            | Adding file utilities, debugging path operations                  |
 | `config/config.json`    | User configuration (paths, git, LLM settings)                      | Configuring plugin for your environment                           |
@@ -51,7 +54,8 @@ Edit `config/config.json` to customize:
 ## Output Format
 
 Plugin writes to `~/context/{classification}/{project}/context.md`:
-- Single consolidated file per project (not per-topic files)
-- Topics appear as inline tags: `## Session [testing] [config] - 2024-01-07`
-- Entries prepended (newest first)
-- Extended thinking provides richer summaries
+- Wiki-style knowledge base with 5 structured sections (Architecture, Decisions, Patterns, Issues, Recent Work)
+- Sessions merge into sections rather than appending logs
+- Recent Work maintains last 5 sessions (newest first)
+- Deduplication prevents repeated entries (0.8 similarity threshold)
+- Graceful fallback to session format on parse failures
