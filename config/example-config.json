@@ -31,8 +31,9 @@
     "include_session_id": false
   },
   "llm_config": {
-    "model": "haiku",
-    "max_tokens": 150,
+    "model": "claude-sonnet-4-5-20250514",
+    "max_tokens": 20000,
+    "thinking_budget": 10000,
     "temperature": 0.3,
     "use_for_reasoning": true,
     "use_for_topic_detection": true,

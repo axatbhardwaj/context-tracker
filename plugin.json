@@ -14,7 +14,7 @@
     "min_changes_threshold": 1,
     "max_session_entries_per_topic": 50,
     "archive_after_sessions": 100,
-    "llm_model": "haiku",
-    "llm_max_tokens": 150
+    "llm_model": "claude-sonnet-4-5-20250514",
+    "llm_max_tokens": 20000
   }
 }
