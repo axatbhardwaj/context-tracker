@@ -85,13 +85,18 @@ class SessionAnalyzer:
                     try:
                         entry = json.loads(line)
 
-                        # Look for tool use entries
-                        if 'type' in entry and entry['type'] == 'tool_use':
-                            tool_uses.append({
-                                'name': entry.get('name'),
-                                'input': entry.get('input', {}),
-                                'timestamp': entry.get('timestamp')
-                            })
+                        # Tool uses are nested in message.content[]
+                        message = entry.get('message', {})
+                        content = message.get('content', [])
+
+                        if isinstance(content, list):
+                            for item in content:
+                                if isinstance(item, dict) and item.get('type') == 'tool_use':
+                                    tool_uses.append({
+                                        'name': item.get('name'),
+                                        'input': item.get('input', {}),
+                                        'timestamp': entry.get('timestamp')
+                                    })
 
                     except json.JSONDecodeError:
                         continue
