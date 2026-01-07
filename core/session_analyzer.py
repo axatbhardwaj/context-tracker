@@ -33,6 +33,7 @@ class SessionContext:
     decisions_made: List[str] = field(default_factory=list)
     problems_solved: List[str] = field(default_factory=list)
     future_work: List[str] = field(default_factory=list)
+    category: str = "general"
 
 
 class SessionAnalyzer:
@@ -407,6 +408,7 @@ Detected topics: {topic_tags}
 3. DECISIONS: Key technical decisions made (list up to 3, or "None")
 4. PROBLEMS_SOLVED: Issues or bugs fixed (list up to 3, or "None")
 5. FUTURE_WORK: Remaining tasks or TODOs mentioned (list up to 3, or "None")
+6. CATEGORY: Classify this session as one of: architecture, config, bugfix, feature, refactor, docs, general
 
 Files changed:
 {change_summary}
@@ -423,7 +425,8 @@ DECISIONS:
 PROBLEMS_SOLVED:
 - <problem 1>
 FUTURE_WORK:
-- <todo 1>"""
+- <todo 1>
+CATEGORY: <category>"""
 
         try:
             # 2k tokens sufficient for goal(200) + summary(400) + decisions(400) + problems(400) + future(400) + tags(200)
@@ -461,6 +464,8 @@ FUTURE_WORK:
                 ctx.user_goal = line.replace('USER_GOAL:', '').strip()
             elif line.startswith('SUMMARY:'):
                 ctx.summary = line.replace('SUMMARY:', '').strip()
+            elif line.startswith('CATEGORY:'):
+                ctx.category = line.replace('CATEGORY:', '').strip().lower()
             elif line.startswith('DECISIONS:'):
                 current_section = 'decisions'
             elif line.startswith('PROBLEMS_SOLVED:'):
