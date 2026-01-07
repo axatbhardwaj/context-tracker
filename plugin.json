@@ -1,0 +1,20 @@
+{
+  "name": "context-tracker",
+  "version": "1.0.0",
+  "description": "Automatic context tracking with git sync for Claude Code sessions",
+  "author": "user",
+  "license": "MIT",
+  "hooks": true,
+  "config": {
+    "enabled": true,
+    "context_root": "~/context",
+    "git_repo": "git@github.com:USERNAME/claude-context.git",
+    "auto_commit": true,
+    "auto_push": true,
+    "min_changes_threshold": 1,
+    "max_session_entries_per_topic": 50,
+    "archive_after_sessions": 100,
+    "llm_model": "haiku",
+    "llm_max_tokens": 150
+  }
+}

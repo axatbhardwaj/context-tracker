@@ -1,0 +1,110 @@
+{
+  "patterns": {
+    "testing": {
+      "file_patterns": [
+        "**/tests/**",
+        "**/test/**",
+        "**/*.test.ts",
+        "**/*.test.js",
+        "**/*.spec.ts",
+        "**/*.spec.js"
+      ],
+      "description": "Test files and testing utilities",
+      "priority": 10
+    },
+    "fee-calculations": {
+      "file_patterns": [
+        "**/fee*.ts",
+        "**/fee*.js",
+        "**/price*.ts",
+        "**/price*.js",
+        "**/pricing/**"
+      ],
+      "description": "Fee calculation and pricing logic",
+      "priority": 8
+    },
+    "event-handlers": {
+      "file_patterns": [
+        "**/handlers/**",
+        "**/mappings/**",
+        "**/events/**",
+        "**/mech-*.ts"
+      ],
+      "description": "Event processing and handlers",
+      "priority": 9
+    },
+    "entity-models": {
+      "file_patterns": [
+        "**/schema.graphql",
+        "**/models/**",
+        "**/*entity*.ts",
+        "**/*model*.ts"
+      ],
+      "description": "Data models and schema definitions",
+      "priority": 7
+    },
+    "utility-functions": {
+      "file_patterns": [
+        "**/utils.ts",
+        "**/utils/**",
+        "**/helpers/**",
+        "**/lib/**"
+      ],
+      "description": "Shared utilities and helper functions",
+      "priority": 5
+    },
+    "api-endpoints": {
+      "file_patterns": [
+        "**/routes/**",
+        "**/api/**",
+        "**/endpoints/**",
+        "**/controllers/**"
+      ],
+      "description": "API routes and endpoints",
+      "priority": 8
+    },
+    "database": {
+      "file_patterns": [
+        "**/migrations/**",
+        "**/seeds/**",
+        "**/queries/**",
+        "**/*repository*.ts"
+      ],
+      "description": "Database migrations and queries",
+      "priority": 7
+    },
+    "configuration": {
+      "file_patterns": [
+        "**/config/**",
+        "**/*.config.ts",
+        "**/*.config.js",
+        "**/constants.ts",
+        "**/*.env*"
+      ],
+      "description": "Configuration and constants",
+      "priority": 6
+    },
+    "documentation": {
+      "file_patterns": [
+        "**/*.md",
+        "**/docs/**",
+        "**/README*"
+      ],
+      "description": "Documentation files",
+      "priority": 4
+    },
+    "deployment": {
+      "file_patterns": [
+        "**/deploy/**",
+        "**/deployment/**",
+        "**/*.yaml",
+        "**/*.yml",
+        "**/Dockerfile*",
+        "**/docker-compose*"
+      ],
+      "description": "Deployment configurations and scripts",
+      "priority": 7
+    }
+  },
+  "fallback_topic": "general-changes"
+}

@@ -1,0 +1,41 @@
+{
+  "context_root": "~/context",
+  "work_path_patterns": [
+    "/home/xzat/valory/",
+    "/home/xzat/work/"
+  ],
+  "personal_path_patterns": [
+    "/home/xzat/personal/",
+    "/home/xzat/projects/"
+  ],
+  "excluded_paths": [
+    "/tmp/",
+    "/home/xzat/Downloads/",
+    "/home/xzat/.cache/",
+    "/home/xzat/.local/share/Trash/"
+  ],
+  "git_config": {
+    "auto_commit": true,
+    "auto_push": true,
+    "commit_message_template": "Context update: {project} - {topics}",
+    "push_on_every_commit": false,
+    "batch_commits": true,
+    "batch_timeout_minutes": 5
+  },
+  "session_config": {
+    "min_changes_threshold": 1,
+    "max_session_entries_per_topic": 50,
+    "archive_after_sessions": 100,
+    "include_file_paths": true,
+    "include_timestamps": true,
+    "include_session_id": false
+  },
+  "llm_config": {
+    "model": "haiku",
+    "max_tokens": 150,
+    "temperature": 0.3,
+    "use_for_reasoning": true,
+    "use_for_topic_detection": true,
+    "fallback_to_patterns": true
+  }
+}
