@@ -84,6 +84,14 @@
       "description": "Configuration and constants",
       "priority": 6
     },
+    "plans": {
+      "file_patterns": [
+        "**/.claude/plans/**",
+        "**/plans/*.md"
+      ],
+      "description": "Implementation plans from Claude Code sessions",
+      "priority": 11
+    },
     "documentation": {
       "file_patterns": [
         "**/*.md",
