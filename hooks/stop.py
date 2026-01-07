@@ -40,6 +40,37 @@ def copy_plan_files(changes, context_dir: Path):
                 logger.info(f"Copied plan file: {file_path.name}")
 
 
+def cleanup_old_topic_files(context_dir: Path):
+    """Delete legacy .md files in context directory, preserving context.md.
+
+    Runs once per project (marker file gates re-execution). Non-recursive glob
+    excludes plans/ subdirectory. Skips execution if marker exists.
+
+    Args:
+        context_dir: Context directory for current project
+    """
+    marker_file = context_dir / '.migrated'
+
+    # Marker file gates cleanup execution (only runs once per project)
+    if marker_file.exists():
+        return
+
+    # Non-recursive glob naturally excludes plans/ subdirectory
+    if not context_dir.exists():
+        return
+
+    for md_file in context_dir.glob('*.md'):
+        # Skip context.md during cleanup
+        if md_file.name == 'context.md':
+            continue
+
+        md_file.unlink()
+        logger.info(f"Deleted old topic file: {md_file.name}")
+
+    # Marker prevents accidental re-deletion on subsequent runs
+    marker_file.touch()
+
+
 def main():
     """Main entry point for Stop hook."""
     try:
@@ -76,27 +107,32 @@ def main():
         detector = TopicDetector(config)
         topics_map = detector.detect_topics(changes)
 
-        # Extract rich session context via LLM
-        session_context = analyzer.extract_session_context(changes)
+        # Pass topics to LLM for inline tagging in consolidated summary
+        all_topics = list(topics_map.keys())
+        session_context = analyzer.extract_session_context(changes, topics=all_topics)
 
         # Fallback reasoning if context extraction failed
         reasoning = session_context.summary or analyzer.extract_reasoning(changes)
 
         # Write to context files
         writer = MarkdownWriter(config)
-        written_files = []
 
-        for topic, topic_changes in topics_map.items():
-            file_path = writer.append_session(
-                project_path=cwd,
-                classification=classification,
-                topic=topic,
-                changes=topic_changes,
-                reasoning=reasoning,
-                context=session_context
-            )
-            written_files.append(file_path)
-            logger.info(f"Updated {file_path}")
+        # One-time cleanup of legacy topic files
+        context_root = Path(config.get('context_root', '~/context')).expanduser()
+        rel_path = cwd.replace(str(Path.home()), '').lstrip('/')
+        context_dir = context_root / classification / rel_path
+        cleanup_old_topic_files(context_dir)
+
+        # Write all topics to single context.md entry
+        file_path = writer.append_session(
+            project_path=cwd,
+            classification=classification,
+            topics=all_topics,
+            changes=changes,
+            reasoning=reasoning,
+            context=session_context
+        )
+        logger.info(f"Updated {file_path}")
 
         # Copy plan files to context directory
         context_root = Path(config.get('context_root', '~/context')).expanduser()
