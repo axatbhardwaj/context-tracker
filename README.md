@@ -17,34 +17,85 @@ Automated context tracking plugin for Claude Code that captures what changed and
 - Claude Code CLI
 - Python 3.8+
 - Git
+- jq (optional, recommended)
 
-### Setup
+### Quick Install
+
+```bash
+git clone https://github.com/YOUR_USERNAME/claude-context-tracker.git
+cd claude-context-tracker
+./install.sh
+```
+
+The installer will:
+1. Create the plugin symlink
+2. Configure Claude Code hooks automatically
+3. Prompt you to set up your paths (work/personal directories)
+4. Initialize the context repository
+
+### Non-Interactive Install
+
+For scripted installs, use flags to skip prompts:
+
+```bash
+./install.sh --yes \
+  --context-root=~/context \
+  --work-patterns="~/work, ~/company" \
+  --personal-patterns="~/personal, ~/projects"
+```
+
+### Manual Setup
+
+<details>
+<summary>Click to expand manual installation steps</summary>
 
 1. **Clone the plugin:**
    ```bash
-   git clone https://github.com/axatbhardwaj/claude-context-tracker.git ~/personal/claude-context-tracker
-   ln -s ~/personal/claude-context-tracker ~/.claude/plugins/user/context-tracker
+   git clone https://github.com/YOUR_USERNAME/claude-context-tracker.git ~/claude-context-tracker
+   ln -s ~/claude-context-tracker ~/.claude/plugins/user/context-tracker
    ```
 
-2. **Create context repository:**
-   ```bash
-   mkdir -p ~/context/{personal,work}
-   cd ~/context
-   git init
-   git remote add origin git@github.com:axatbhardwaj/claude-context.git  # Private repo
-   ```
-
-3. **Configure paths:**
-   Edit `~/.claude/plugins/user/context-tracker/config/default-config.json`:
+2. **Add hook to Claude settings:**
+   Edit `~/.claude/settings.json` and add:
    ```json
    {
-     "work_path_patterns": ["/home/xzat/valory/", "/home/xzat/work/"],
-     "personal_path_patterns": ["/home/xzat/personal/"]
+     "hooks": {
+       "Stop": [{
+         "hooks": [{
+           "type": "command",
+           "command": "CLAUDE_PLUGIN_ROOT=~/claude-context-tracker python3 ~/claude-context-tracker/hooks/stop.py",
+           "timeout": 30
+         }]
+       }]
+     }
    }
    ```
 
-4. **Test:**
-   Make a change in any project and end your Claude Code session. Check `~/context/` for new entries.
+3. **Configure paths:**
+   ```bash
+   cp config/example-config.json config/config.json
+   # Edit config/config.json with your paths
+   ```
+
+4. **Create context repository:**
+   ```bash
+   mkdir -p ~/context/{personal,work}
+   cd ~/context && git init
+   ```
+
+</details>
+
+### Uninstall
+
+```bash
+./uninstall.sh
+```
+
+This removes the hook and symlink but preserves your context data.
+
+### Test
+
+After installation, start a Claude Code session, make some changes, and exit. Check `~/context/` for new entries.
 
 ## How It Works
 
@@ -57,12 +108,31 @@ Automated context tracking plugin for Claude Code that captures what changed and
 
 ## Configuration
 
-See `config/default-config.json` for full configuration options.
+The plugin uses `config/config.json` for user configuration. If this file doesn't exist, it falls back to `config/example-config.json`.
+
+### Configuration Options
+
+- **context_root**: Directory where context files are stored (default: `~/context`)
+- **work_path_patterns**: List of directory patterns for work projects
+- **personal_path_patterns**: List of directory patterns for personal projects
+- **excluded_paths**: Paths to ignore when tracking changes
+- **git_config**: Git synchronization settings
+  - `auto_commit`: Automatically commit changes (default: true)
+  - `auto_push`: Automatically push to remote (default: true)
+  - `commit_message_template`: Template for commit messages
+- **session_config**: Session tracking settings
+  - `min_changes_threshold`: Minimum file changes to trigger tracking
+  - `max_session_entries_per_topic`: Max entries per topic file
+- **llm_config**: LLM settings for reasoning extraction
+  - `model`: Claude model to use (default: "haiku")
+  - `max_tokens`: Maximum tokens for reasoning (default: 150)
+
+See `config/example-config.json` for a complete example with all available options.
 
 ## License
 
 MIT License - see LICENSE file
 
-## Author
+## Contributing
 
-axatbhardwaj
+Contributions are welcome! Please feel free to submit a Pull Request.
