@@ -23,9 +23,13 @@ Analyze this summary to understand:
 
 1. **USER_GOAL**: What was the user trying to accomplish? (1 sentence)
 2. **SUMMARY**: What was done? Include topic tags inline. (2-3 sentences)
-3. **DECISIONS**: Key technical decisions made (up to 3)
-4. **PROBLEMS_SOLVED**: Issues or bugs fixed (up to 3)
-5. **FUTURE_WORK**: Remaining tasks mentioned (up to 3)
+3. **DECISIONS**: Key technical decisions made. For each, include:
+   - *Rationale*: Why was this decision made?
+   - *Alternatives*: What else was considered? (if any)
+4. **KEY_SYMBOLS**: List of primary classes/functions modified (e.g., `MarkdownWriter.write_session_log`)
+5. **LEARNINGS**: New discoveries about the codebase (quirks, hidden dependencies, performance issues)
+6. **PROBLEMS_SOLVED**: Issues or bugs fixed (up to 3)
+7. **FUTURE_WORK**: Remaining tasks mentioned (up to 3)
 
 ### Step 2: Merge into Wiki
 
@@ -38,10 +42,16 @@ The wiki has 5 sections. Merge new content appropriately:
 [Keep existing. Only add if session reveals architectural insights.]
 
 ## Decisions
-[Append new decisions. Deduplicate if similar exists (>80% overlap).]
+[Append new decisions (include Rationale/Alternatives). Deduplicate if similar exists (>80% overlap).]
+
+## Key Symbols
+[Append new symbols. Maintain alphabetical order.]
 
 ## Patterns
 [Keep existing. Only add if session establishes new patterns.]
+
+## Learnings
+[Append new learnings. Deduplicate.]
 
 ## Issues
 [Append problems solved. These become resolved issues for reference.]
@@ -86,13 +96,21 @@ _No architectural notes yet._
 ## Decisions
 
 - Decision 1 description
-- Decision 2 description
+  - *Rationale*: Why this was chosen.
+  - *Context*: Additional context.
 
+## Key Symbols
+
+- `Class.method`
+- `Function`
 
 ## Patterns
 
 _No patterns identified yet._
 
+## Learnings
+
+- `gemini` CLI output quirk
 
 ## Issues
 
