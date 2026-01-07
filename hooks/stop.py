@@ -14,6 +14,7 @@ if PLUGIN_ROOT and PLUGIN_ROOT not in sys.path:
     sys.path.insert(0, PLUGIN_ROOT)
 
 from core.session_analyzer import SessionAnalyzer
+from core.markdown_writer import MarkdownWriter
 from core.topic_detector import TopicDetector
 from core.path_classifier import PathClassifier
 from core.git_sync import GitSync
@@ -147,15 +148,16 @@ def load_skill_prompt(skill_name: str) -> str:
 
 
 def analyze_with_skill(
-    transcript_path: str,
+    session_content: str,
     context_path: str,
     topics: list,
-    config: dict
+    config: dict,
+    log_file_name: str = "",
 ) -> dict:
     """Analyze session using skill-based prompt via LLM client.
 
     Args:
-        transcript_path: Path to session transcript
+        session_content: Content of the session log
         context_path: Path to context.md file
         topics: List of detected topics
         config: Plugin configuration
@@ -169,14 +171,6 @@ def analyze_with_skill(
     if not skill_prompt:
         return {"status": "error", "error": "Skill not found"}
 
-    # Read transcript (truncated for prompt limits)
-    transcript_content = ""
-    if Path(transcript_path).exists():
-        with open(transcript_path) as f:
-            content = f.read()
-            # Take last 50k chars for context
-            transcript_content = content[-50000:] if len(content) > 50000 else content
-
     # Read existing context.md
     existing_context = ""
     if Path(context_path).exists():
@@ -189,27 +183,33 @@ def analyze_with_skill(
 
 ## Current Task
 
-Analyze this session and update the context wiki.
+Analyze this session summary and update the context wiki.
 
 Arguments:
 - topics: {topics_str}
+- log_file: history/{log_file_name}
 
 ### Existing context.md:
 ```markdown
 {existing_context if existing_context else '(new file - create from scratch)'}
 ```
 
-### Session transcript (most recent portion):
-```
-{transcript_content}
+### Session Summary (Input):
+```markdown
+{session_content}
 ```
 
 Output the complete updated context.md content between <context_md> tags.
 Then output a JSON summary."""
 
     try:
+        # Force provider to be gemini if not specified, or respect config?
+        # The user requested generic "gemini integration", so we should prefer gemini here.
+        # But LLMClient logic handles config. We should ensure config has provider='gemini'
+        # if the user hasn't set it, OR rely on LLMClient default.
+        # For now, we trust the config passed in.
         llm = LLMClient(config)
-        response = llm.generate(prompt, max_tokens=4000)
+        response = llm.generate(prompt, max_tokens=2000000)  # Gemini has large context
 
         # Extract context.md content from response
         context_match = re.search(
@@ -291,9 +291,29 @@ def main():
         all_topics = list(topics_map.keys())
 
         # Use skill-based analysis to update context.md
-        logger.info("Analyzing session with skill...")
+        logger.info("Extracting session context...")
+        session_ctx = analyzer.extract_session_context(changes, all_topics)
+
+        # Write immutable log
+        writer = MarkdownWriter(config)
+        log_path = writer.write_session_log(
+            context_dir,
+            all_topics,
+            changes,
+            reasoning=session_ctx.summary,
+            context=session_ctx,
+        )
+        logger.info(f"Written session log: {log_path}")
+
+        # Update wiki using log content
+        logger.info("Updating wiki with Gemini...")
+        log_content = log_path.read_text()
         skill_result = analyze_with_skill(
-            transcript_path, str(context_path), all_topics, config
+            log_content,
+            str(context_path),
+            all_topics,
+            config,
+            log_file_name=log_path.name,
         )
 
         if skill_result.get('status') == 'error':
