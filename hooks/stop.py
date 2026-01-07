@@ -58,8 +58,11 @@ def main():
         detector = TopicDetector(config)
         topics_map = detector.detect_topics(changes)
 
-        # Extract reasoning
-        reasoning = analyzer.extract_reasoning(changes)
+        # Extract rich session context via LLM
+        session_context = analyzer.extract_session_context(changes)
+
+        # Fallback reasoning if context extraction failed
+        reasoning = session_context.summary or analyzer.extract_reasoning(changes)
 
         # Write to context files
         writer = MarkdownWriter(config)
@@ -71,7 +74,8 @@ def main():
                 classification=classification,
                 topic=topic,
                 changes=topic_changes,
-                reasoning=reasoning
+                reasoning=reasoning,
+                context=session_context
             )
             written_files.append(file_path)
             logger.info(f"Updated {file_path}")
