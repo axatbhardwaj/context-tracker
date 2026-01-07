@@ -23,8 +23,8 @@ class LLMClient:
             config: LLM configuration
         """
         self.config = config
-        self.model = config.get('model', 'sonnet')
-        self.max_tokens = config.get('max_tokens', 10000)
+        self.model = config.get('model', 'haiku')
+        self.max_tokens = config.get('max_tokens', 20000)
         self._claude_path = shutil.which('claude')
 
     def generate(self, prompt: str, max_tokens: int = None) -> str:

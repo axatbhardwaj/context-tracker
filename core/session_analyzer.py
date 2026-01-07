@@ -402,8 +402,8 @@ Respond with reasoning only (no code, no implementation details):"""
 Files changed:
 {change_summary}
 
-Session transcript (last 15000 chars):
-{transcript_content[-15000:]}
+Session transcript (last 20000 chars):
+{transcript_content[-20000:]}
 
 Respond in this exact format:
 USER_GOAL: <goal>
