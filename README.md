@@ -5,10 +5,11 @@ Automated context tracking plugin for Claude Code that captures what changed and
 ## Features
 
 - 🎯 **Automatic capture** of file changes and reasoning after each session
-- 📁 **Topic-based organization** (testing, api-endpoints, configuration, etc.)
+- 📄 **Consolidated output** - single `context.md` per project with inline topic tags
+- 🧠 **Extended thinking** - Sonnet 4.5 provides richer, more coherent summaries
 - 🔀 **Git sync** to private repository
 - 🏢 **Personal/Work classification** based on project paths
-- 🤖 **LLM-powered reasoning** extraction
+- 🤖 **LLM-powered reasoning** extraction with 20k token context window
 - 📊 **Zero manual intervention** required
 
 ## Installation
@@ -102,9 +103,82 @@ After installation, start a Claude Code session, make some changes, and exit. Ch
 1. **Stop Hook Triggers:** When you end a Claude Code session
 2. **Analyze Changes:** Extracts modified files from session transcript
 3. **Detect Topics:** Maps files to topics (testing, api-endpoints, etc.)
-4. **Extract Reasoning:** Uses LLM to explain WHY changes were made
-5. **Write Markdown:** Appends entry to topic file in `~/context/`
+4. **Extract Reasoning:** Uses LLM with extended thinking to explain WHY changes were made
+5. **Write Markdown:** Appends single consolidated entry with topic tags to `context.md`
 6. **Git Sync:** Commits and pushes to your private repository
+
+## Architecture
+
+### Consolidated Context Flow
+
+```
+Before (fragmented):
+Session -> TopicDetector -> [topic1, topic2, topic3]
+                                |       |       |
+                                v       v       v
+                           topic1.md topic2.md topic3.md
+
+After (consolidated):
+Session -> TopicDetector -> [topic1, topic2, topic3]
+                                      |
+                                      v
+                              context.md (all topics as tags)
+```
+
+### Data Flow
+
+```
+stop.py hook input (stdin JSON)
+         |
+         v
+SessionAnalyzer.get_changes() -> List[FileChange]
+         |
+         v
+TopicDetector.detect_topics() -> Dict[topic: List[FileChange]]
+         |
+         v
+SessionAnalyzer.extract_session_context() -> SessionContext
+         |                                    (uses extended thinking)
+         v
+MarkdownWriter.append_session() -> writes single context.md
+         |
+         v
+copy_plan_files() -> plans/ directory
+         |
+         v
+GitSync.commit_and_push()
+```
+
+### Output Format
+
+Each session produces a single entry in `context.md`:
+
+```markdown
+## Session [testing] [api-endpoints] - 2024-01-07 14:30
+
+### Goal
+Implement user authentication endpoint with JWT tokens
+
+### Summary
+[testing] Added unit tests for token validation
+[api-endpoints] Created /auth/login endpoint with bcrypt password hashing
+
+### Decisions Made
+- JWT tokens expire after 24h (balance security vs UX)
+- Bcrypt cost factor 12 (OWASP recommendation)
+
+### Problems Solved
+- Fixed race condition in token refresh logic
+
+### Future Work
+- Add refresh token rotation
+- Implement rate limiting
+```
+
+Topics appear as inline tags `[topic-name]` rather than separate files, enabling:
+- Complete session context in one location
+- Easy filtering by topic via text search
+- No cross-file correlation needed
 
 ## Configuration
 
@@ -124,10 +198,23 @@ The plugin uses `config/config.json` for user configuration. If this file doesn'
   - `min_changes_threshold`: Minimum file changes to trigger tracking
   - `max_session_entries_per_topic`: Max entries per topic file
 - **llm_config**: LLM settings for reasoning extraction
-  - `model`: Claude model to use (default: "haiku")
-  - `max_tokens`: Maximum tokens for reasoning (default: 150)
+  - `model`: Claude model to use (default: "claude-sonnet-4-5-20250514")
+  - `max_tokens`: Maximum tokens for session summary (default: 20000)
+  - `thinking_budget`: Extended thinking token budget (default: 10000)
+  - `temperature`: LLM temperature for generation (default: 0.3)
 
 See `config/example-config.json` for a complete example with all available options.
+
+### Extended Thinking Configuration
+
+The plugin uses Claude's extended thinking capability for richer context extraction:
+
+- **thinking_budget**: 10,000 tokens by default - balances quality vs cost
+- Adds ~5-10 seconds latency per session (acceptable for background operation)
+- Produces more coherent consolidated summaries than standard mode
+- Set `thinking_budget: 0` to disable extended thinking if needed
+
+The 20,000 token context window allows analysis of full session transcripts without truncation.
 
 ## License
 
