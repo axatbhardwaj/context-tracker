@@ -58,7 +58,9 @@ class LLMClient:
             )
 
             if result.returncode != 0:
-                logger.error(f"claude CLI error: {result.stderr}")
+                logger.error(f"claude CLI failed: returncode={result.returncode}")
+                logger.error(f"stdout: {result.stdout[:500] if result.stdout else '(empty)'}")
+                logger.error(f"stderr: {result.stderr[:500] if result.stderr else '(empty)'}")
                 return self._fallback_response(prompt)
 
             return result.stdout.strip()
