@@ -6,6 +6,8 @@
 | ------------ | --------------------------------------------- | --------------------------------------------- |
 | `stop.py`    | Session capture hook, orchestrates analysis   | Debugging hook execution, understanding flow  |
 | `hooks.json` | Hook configuration for Claude Code            | Modifying hook settings                       |
+| `GEMINI.md`  | Gemini-specific context index                 | Understanding Gemini integration              |
+| `__init__.py`| Python package marker                         | Understanding package structure               |
 
 ## Functions
 

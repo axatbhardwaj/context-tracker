@@ -18,6 +18,7 @@ from core.session_analyzer import SessionAnalyzer
 from core.markdown_writer import MarkdownWriter
 from core.topic_detector import TopicDetector
 from core.wiki_parser import parse, has_empty_sections
+from core.monorepo_detector import detect_monorepo
 from core.path_classifier import PathClassifier
 from core.git_sync import GitSync
 from core.config_loader import load_config
@@ -82,6 +83,115 @@ def analyze_codebase(cwd: str) -> str:
         summary = summary[:8000] + "\n\n[truncated]"
 
     return summary if summary else "No codebase information available."
+
+
+def _is_previously_confirmed(info, config: dict) -> bool:
+    """Check if monorepo was previously confirmed by user.
+
+    Called by prompt_monorepo_confirmation to check cache before prompting.
+    Cached confirmations avoid prompting user on every session for same monorepo.
+
+    Args:
+        info: MonorepoInfo from detection
+        config: Plugin configuration
+
+    Returns:
+        True if previously confirmed
+    """
+    confirmed_projects = config.get('monorepo_confirmed_projects', [])
+    return info.root in confirmed_projects
+
+
+def _save_confirmed_project(info, config: dict) -> bool:
+    """Save confirmed monorepo to config file.
+
+    Called by prompt_monorepo_confirmation after user confirms.
+
+    Args:
+        info: MonorepoInfo from detection
+        config: Plugin configuration
+
+    Returns:
+        True if save succeeded, False on failure
+    """
+    confirmed_projects = config.get('monorepo_confirmed_projects', [])
+    confirmed_projects.append(info.root)
+    config['monorepo_confirmed_projects'] = confirmed_projects
+
+    plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT')
+    if plugin_root:
+        config_path = Path(plugin_root) / 'config' / 'config.json'
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(config, f, indent=2)
+            return True
+        except IOError as e:
+            logger.error(f"Failed to save config: {e}")
+            return False
+    return True
+
+
+def _build_prompt_message(info) -> str:
+    """Build confirmation prompt message.
+
+    Called by prompt_monorepo_confirmation to format user prompt.
+
+    Args:
+        info: MonorepoInfo from detection
+
+    Returns:
+        Formatted prompt string
+    """
+    return (
+        f"\nDetected {info.type} monorepo at {info.root}.\n"
+        f"Workspace: {info.workspace_relative}\n"
+        "Use hierarchical context? [Y/n]: "
+    )
+
+
+def _get_user_confirmation() -> bool:
+    """Get user confirmation from stdin.
+
+    Called by prompt_monorepo_confirmation to read user input.
+    Empty response treated as Yes for faster workflow.
+
+    Returns:
+        True if user confirms
+    """
+    try:
+        response = input().strip().lower()
+        return response in ('', 'y', 'yes')
+    except (EOFError, KeyboardInterrupt):
+        print(file=sys.stderr)
+        return False
+
+
+def prompt_monorepo_confirmation(info, config: dict) -> bool:
+    """Prompt user to confirm hierarchical context for monorepo.
+
+    Prints to stderr: hook stdout reserved for automation, stderr for user interaction.
+
+    Args:
+        info: MonorepoInfo from detection
+        config: Plugin configuration
+
+    Returns:
+        True if user confirms hierarchical mode
+    """
+    if _is_previously_confirmed(info, config):
+        logger.info(f"Monorepo {info.root} previously confirmed")
+        return True
+
+    prompt = _build_prompt_message(info)
+    print(prompt, file=sys.stderr, end='', flush=True)
+
+    confirmed = _get_user_confirmation()
+    if confirmed:
+        if not _save_confirmed_project(info, config):
+            logger.warning("Monorepo confirmation not cached; will re-prompt on next session")
+        logger.info(f"Monorepo confirmed: {info.root}")
+
+    return confirmed
 
 
 def copy_plan_files(changes, context_dir: Path):
@@ -453,12 +563,38 @@ def main():
             print(json.dumps({}), file=sys.stdout)
             sys.exit(0)
 
-        # Classify project path and build context path
+        # Classify project path
         classification = PathClassifier.classify(cwd, config)
         context_root = Path(config.get('context_root', '~/context')).expanduser()
-        rel_path = PathClassifier.get_relative_path(cwd, classification, config)
-        context_dir = context_root / classification / rel_path
-        context_path = context_dir / "context.md"
+
+        # Monorepo detection with graceful fallback
+        context_paths = []
+        try:
+            monorepo_info = detect_monorepo(cwd)
+            if monorepo_info:
+                if prompt_monorepo_confirmation(monorepo_info, config):
+                    context_paths = PathClassifier.get_monorepo_context_paths(
+                        monorepo_info,
+                        classification,
+                        config
+                    )
+                    logger.info(f"Using hierarchical context for {monorepo_info.type} monorepo")
+                    logger.info(f"Root: {context_paths[0]}")
+                    logger.info(f"Workspace: {context_paths[1]}")
+                else:
+                    logger.info("User declined hierarchical mode, using single context")
+        except Exception as e:
+            logger.warning(f"Monorepo detection failed: {e}")
+
+        # Fallback to single-repo mode
+        if not context_paths:
+            rel_path = PathClassifier.get_relative_path(cwd, classification, config)
+            context_dir = context_root / classification / rel_path
+            context_path = context_dir / "context.md"
+            context_paths = [context_path]
+        else:
+            context_dir = context_paths[1].parent
+            context_path = context_paths[1]
 
         # Ensure context directory exists
         ensure_directory(context_dir)
@@ -504,6 +640,22 @@ def main():
 
         # Enrich empty sections if needed
         enrich_empty_sections(context_path, cwd, config)
+
+        # Root context captures cross-cutting architecture decisions
+        if len(context_paths) > 1:
+            root_context_path = context_paths[0]
+            ensure_directory(root_context_path.parent)
+            try:
+                root_result = analyze_with_skill(
+                    log_content,
+                    str(root_context_path),
+                    all_topics,
+                    config,
+                    log_file_name=log_path.name,
+                )
+                logger.info(f"Updated root context: {root_result.get('context_path')}")
+            except Exception as e:
+                logger.warning(f"Failed to update root context: {e}")
 
         # Copy plan files to context directory
         copy_plan_files(changes, context_dir)

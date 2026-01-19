@@ -10,6 +10,7 @@
 | `test_wiki_merger.py`      | Wiki merger unit tests           | Adding merger tests                     |
 | `test_config_loader.py`    | Config loader unit tests         | Adding config tests                     |
 | `test_path_classifier.py`  | Path classifier unit tests       | Adding classifier tests                 |
+| `__init__.py`              | Python package marker            | Understanding package structure         |
 
 ## Subdirectories
 

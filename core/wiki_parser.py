@@ -113,7 +113,7 @@ def has_empty_sections(wiki: WikiKnowledge) -> bool:
     if not wiki.architecture or re.search(placeholder_pattern, wiki.architecture):
         return True
 
-    if not wiki.patterns or not getattr(wiki, 'key_symbols', None):
+    if not wiki.patterns or not wiki.key_symbols:
         return True
 
     return False

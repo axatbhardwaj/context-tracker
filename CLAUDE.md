@@ -10,6 +10,8 @@ Automated context tracking plugin for Claude Code sessions.
 | `plugin.json`  | Plugin metadata, CLI defaults          | Modifying plugin registration               |
 | `install.sh`   | Installation script with hook setup    | Installing, troubleshooting setup           |
 | `uninstall.sh` | Removal script                         | Uninstalling plugin                         |
+| `GEMINI.md`    | Gemini-specific context index          | Understanding Gemini integration            |
+| `Todo.md`      | Project todo list                      | Tracking tasks                              |
 | `LICENSE`      | MIT license                            | Licensing questions                         |
 | `.gitignore`   | Git ignore patterns                    | Adding ignore patterns                      |
 
@@ -24,6 +26,7 @@ Automated context tracking plugin for Claude Code sessions.
 | `tests/`   | Test suite for all components               | Running tests, adding test coverage           |
 | `scripts/` | Shared shell utilities for install scripts  | Modifying install/uninstall behavior          |
 | `skills/`  | Claude Code skills for context analysis     | Understanding skill-based analysis            |
+| `examples/`| Sample context.md files                     | Understanding output format, learning patterns|
 
 ## Build
 

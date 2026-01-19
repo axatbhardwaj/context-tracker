@@ -2,7 +2,9 @@
 """Path classifier for context-tracker plugin."""
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
+
+from core.monorepo_detector import MonorepoInfo
 
 
 class PathClassifier:
@@ -91,3 +93,29 @@ class PathClassifier:
         # Last resort: use last 2 segments
         parts = Path(cwd).parts
         return '/'.join(parts[-2:]) if len(parts) >= 2 else parts[-1]
+
+    @staticmethod
+    def get_monorepo_context_paths(
+        info: MonorepoInfo,
+        classification: str,
+        config: Dict[str, Any]
+    ) -> List[Path]:
+        """Get context paths for monorepo structure.
+
+        Args:
+            info: Monorepo detection info
+            classification: 'work' or 'personal'
+            config: Plugin configuration
+
+        Returns:
+            List of [root_context_path, workspace_context_path]
+        """
+        if not info.workspace_relative:
+            raise ValueError("workspace_relative cannot be empty")
+
+        context_root = Path(config.get('context_root', '~/context')).expanduser()
+        monorepo_name = Path(info.root).name
+
+        root_path = context_root / classification / monorepo_name / "context.md"
+        workspace_path = context_root / classification / monorepo_name / info.workspace_relative / "context.md"
+        return [root_path, workspace_path]

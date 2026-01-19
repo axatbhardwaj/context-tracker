@@ -42,6 +42,66 @@ MarkdownWriter.write_wiki(wiki)
 context.md (structured wiki format)
 ```
 
+## Monorepo Support
+
+### Architecture
+
+```
+Session End (cwd = ~/valory/autonolas-frontend-mono/apps/marketplace/src)
+        |
+        v
++-------------------+
+| detect_monorepo() |  <- Walk up to find nx.json
++-------------------+
+        |
+        v
++-------------------+
+| MonorepoInfo      |  <- root=~/valory/autonolas-frontend-mono
+|   type="nx"       |     workspace_relative="apps/marketplace"
+|   workspace="marketplace"
++-------------------+
+        |
+        v
++-------------------+
+| prompt_confirm()  |  <- "Detected NX monorepo. Use hierarchical context? [Y/n]"
++-------------------+
+        |
+        v (if confirmed)
++-------------------+
+| context paths:    |
+|  - root: ~/context/work/autonolas-frontend-mono/context.md
+|  - workspace: ~/context/work/autonolas-frontend-mono/apps/marketplace/context.md
++-------------------+
+```
+
+### Detection Flow
+
+```
+Standard Marker Detection:
+  cwd -> walk up -> find nx.json/turbo.json/lerna.json/pnpm-workspace.yaml
+       -> MonorepoInfo(type="nx", ...)
+
+Custom Pattern Detection (fallback):
+  cwd -> walk up -> find subgraphs/ with nested package.json
+       -> MonorepoInfo(type="subgraphs", ...)
+
+No Monorepo:
+  cwd -> walk up -> no markers, no custom patterns
+       -> None (use single-repo mode)
+```
+
+### Why This Structure
+
+**monorepo_detector.py separate from path_classifier.py**: Detection logic handles multiple marker types + custom patterns + filesystem walking. Complex enough to deserve own module with isolated testing.
+
+**Custom patterns configurable**: `subgraphs/` is The Graph specific. Other ecosystems may have similar patterns. Config allows extension without code changes.
+
+**NX apps/ + libs/ both detected**: Real projects like autonolas-frontend-mono use both. Apps are deployable services; libs contain shared code that also evolves. Both deserve context tracking.
+
+**Standard markers take precedence**: Standard markers (nx.json, lerna.json) checked first. Custom patterns (subgraphs/) run as fallback to prevent false positives from coincidental directories.
+
+**Interactive confirmation**: Prevents false positives and gives user control. Once confirmed, project cached to avoid re-prompting on subsequent sessions.
+
 ## Design Decisions
 
 **WikiParser separate from Merger**: Single responsibility - parser only reads, merger only transforms. Parser handles all markdown parsing logic; merger contains deduplication and rotation logic.

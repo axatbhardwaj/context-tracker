@@ -12,4 +12,7 @@
 | `git_sync.py`          | Git commit and push automation                 | Debugging git operations, modifying sync         |
 | `config_loader.py`     | Config file loading with fallbacks             | Changing config paths, debugging config issues   |
 | `path_classifier.py`   | Personal/work project classification           | Changing classification logic, adding patterns   |
+| `monorepo_detector.py` | Monorepo detection, workspace identification   | Adding monorepo support, debugging detection     |
 | `README.md`            | Architecture, design decisions, invariants     | Understanding wiki system design                 |
+| `GEMINI.md`            | Gemini-specific context index                  | Understanding Gemini integration                 |
+| `__init__.py`          | Python package marker                          | Understanding package structure                  |

@@ -42,5 +42,10 @@
   "wiki_config": {
     "enabled": true,
     "max_recent_sessions": 5
-  }
+  },
+  "monorepo_config": {
+    "enabled": true,
+    "custom_workspace_dirs": ["subgraphs"]
+  },
+  "monorepo_confirmed_projects": []
 }

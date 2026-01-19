@@ -1,6 +1,31 @@
 # Claude Context Tracker
 
-Automated context tracking plugin for Claude Code that captures what changed and why in every session.
+## The Problem
+You start a Claude Code session, build a feature, and exit. Two weeks later, you return. **Context is gone.**
+*   "Why did I choose this library?"
+*   "What was I working on last time?"
+*   "Did I finish that refactor?"
+
+You waste 15 minutes re-reading code to rebuild your mental model. Claude Code starts fresh, unaware of your previous decisions, architectural patterns, or unfinished tasks.
+
+## The Solution
+This plugin automatically builds a **persistent memory** for your projects.
+Every time you exit a session, it:
+1.  **Analyzes** your session transcript
+2.  **Extracts** architectural decisions, patterns, and progress
+3.  **Updates** a consolidated `context.md` file
+4.  **Syncs** to a private Git repository
+
+When you return, you (and Claude) have a single source of truth for the project's history.
+
+## How It Works
+
+1. **Stop Hook Triggers:** When you end a Claude Code session
+2. **Analyze Changes:** Extracts modified files from session transcript
+3. **Detect Topics:** Maps files to topics (testing, api-endpoints, etc.)
+4. **Extract Reasoning:** Uses LLM with extended thinking to explain WHY changes were made
+5. **Write Markdown:** Appends single consolidated entry with topic tags to `context.md`
+6. **Git Sync:** Commits and pushes to your private repository
 
 ## Features
 
@@ -11,6 +36,7 @@ Automated context tracking plugin for Claude Code that captures what changed and
 - 🏢 **Personal/Work classification** based on project paths
 - 🤖 **LLM-powered reasoning** extraction with 20k token context window
 - 📊 **Zero manual intervention** required
+- 📁 **Monorepo support** - hierarchical context for NX, Turborepo, Lerna, and custom workspaces
 
 ## Installation
 
@@ -98,14 +124,35 @@ This removes the hook and symlink but preserves your context data.
 
 After installation, start a Claude Code session, make some changes, and exit. Check `~/context/` for new entries.
 
-## How It Works
+## Using Captured Context
 
-1. **Stop Hook Triggers:** When you end a Claude Code session
-2. **Analyze Changes:** Extracts modified files from session transcript
-3. **Detect Topics:** Maps files to topics (testing, api-endpoints, etc.)
-4. **Extract Reasoning:** Uses LLM with extended thinking to explain WHY changes were made
-5. **Write Markdown:** Appends single consolidated entry with topic tags to `context.md`
-6. **Git Sync:** Commits and pushes to your private repository
+### 1. Add to Your Claude Config
+To make Claude aware of its own history, add this to your global `~/.claude/CLAUDE.md`:
+
+```markdown
+# Context Instructions
+- Check project context at: ~/context/{personal|work}/{project_name}/context.md
+- Use this file to understand architecture, decisions, and patterns before starting work.
+```
+
+### 2. What's in context.md?
+- **Architecture**: High-level system design.
+- **Decisions**: "Why" we did things (alternatives considered, rationale).
+- **Patterns**: Established coding standards to follow.
+- **Recent Work**: Summary of previous sessions.
+
+### 3. Example Queries
+Once configured, you can ask things like:
+- "Check context.md for the auth pattern we decided on."
+- "What was the last thing I worked on regarding the API?"
+- "Why did we choose generic views? Check the Decisions section."
+
+## Examples
+
+See the [examples/](examples/) directory for complete files:
+
+- **[Simple Example](examples/context-simple.md)**: Typical for a new project or script.
+- **[Detailed Example](examples/context-detailed.md)**: Shows a mature project with complex architecture.
 
 ## Architecture
 
@@ -215,6 +262,88 @@ The plugin uses Claude's extended thinking capability for richer context extract
 - Set `thinking_budget: 0` to disable extended thinking if needed
 
 The 20,000 token context window allows analysis of full session transcripts without truncation.
+
+## Monorepo Support
+
+The plugin automatically detects and supports monorepo structures, creating hierarchical context files that mirror your repository organization.
+
+### Supported Monorepo Types
+
+- **NX Workspaces**: Detects `nx.json` and creates context for `apps/` and `libs/` directories
+- **Turborepo**: Detects `turbo.json` with `packages/` workspaces
+- **Lerna**: Detects `lerna.json` with `packages/` workspaces
+- **pnpm Workspaces**: Detects `pnpm-workspace.yaml`
+- **npm/Yarn Workspaces**: Detects `workspaces` field in `package.json`
+- **Custom Patterns**: Supports The Graph subgraphs and other custom workspace layouts
+
+### How It Works
+
+When you end a session in a monorepo workspace (e.g., `~/work/autonolas-frontend-mono/apps/marketplace`), the plugin:
+
+1. **Detects the monorepo** by walking up the filesystem looking for markers (nx.json, turbo.json, etc.)
+2. **Prompts for confirmation** the first time: `Detected NX monorepo. Use hierarchical context? [Y/n]`
+3. **Creates two context files**:
+   - **Root context**: `~/context/work/autonolas-frontend-mono/context.md` - captures cross-cutting architecture decisions
+   - **Workspace context**: `~/context/work/autonolas-frontend-mono/apps/marketplace/context.md` - tracks workspace-specific changes
+
+### Example Structure
+
+For a typical NX monorepo like `autonolas-frontend-mono`:
+
+```
+~/context/work/autonolas-frontend-mono/
+├── context.md                           # Root: shared patterns, NX config, architecture
+├── apps/
+│   ├── marketplace/
+│   │   └── context.md                   # Marketplace app: features, API, UI components
+│   └── dashboard/
+│       └── context.md                   # Dashboard app: analytics, reporting
+└── libs/
+    ├── ui-components/
+    │   └── context.md                   # Shared UI library: design system, components
+    └── auth/
+        └── context.md                   # Shared auth library: JWT, permissions
+```
+
+### Benefits
+
+- **Workspace isolation**: Each app/lib gets its own context history
+- **Shared knowledge**: Root context captures decisions affecting all workspaces
+- **Navigation efficiency**: LLM can find relevant context without searching unrelated workspace histories
+- **Scalability**: Works with monorepos containing dozens of workspaces
+
+### Configuration
+
+Once confirmed, the monorepo is cached in `config/config.json`:
+
+```json
+{
+  "monorepo_confirmed_projects": [
+    "/home/user/work/autonolas-frontend-mono"
+  ]
+}
+```
+
+You won't be prompted again for subsequent sessions in this monorepo.
+
+### Custom Workspace Patterns
+
+To add custom workspace directories beyond the defaults (`apps/`, `libs/`, `packages/`, `subgraphs/`), edit `config/config.json`:
+
+```json
+{
+  "monorepo_config": {
+    "enabled": true,
+    "custom_workspace_dirs": [
+      "subgraphs",
+      "services",
+      "plugins"
+    ]
+  }
+}
+```
+
+See [examples/context-monorepo.md](examples/context-monorepo.md) for a complete example.
 
 ## License
 

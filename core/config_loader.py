@@ -80,5 +80,10 @@ def _get_default_config() -> Dict[str, Any]:
         'topic_patterns': {
             'patterns': {},
             'fallback_topic': 'general-changes'
-        }
+        },
+        'monorepo_config': {
+            'enabled': True,
+            'custom_workspace_dirs': ['subgraphs']
+        },
+        'monorepo_confirmed_projects': []
     }

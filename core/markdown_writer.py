@@ -189,6 +189,13 @@ class MarkdownWriter:
         else:
             parts.append("_No patterns identified yet._\n")
 
+        # Key Symbols section (list)
+        parts.append("\n## Key Symbols\n")
+        if wiki.key_symbols:
+            parts.append('\n'.join(f"- {k}" for k in wiki.key_symbols) + '\n')
+        else:
+            parts.append("_No key symbols identified yet._\n")
+
         # Issues section (list)
         parts.append("\n## Issues\n")
         if wiki.issues:
