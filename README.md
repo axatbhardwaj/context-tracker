@@ -33,6 +33,7 @@ When you return, you (and Claude) have a single source of truth for the project'
 - 🎯 **Interactive capture** of file changes and reasoning after each session
 - 📄 **Consolidated output** - single `context.md` per project with inline topic tags
 - 🧠 **Extended thinking** - Sonnet 4.5 provides richer, more coherent summaries
+- 💎 **Context Enrichment** - Automatically fills empty architecture and pattern sections using codebase analysis via Gemini
 - 🔀 **Git sync** to private repository
 - 🏢 **Personal/Work classification** based on project paths
 - 🤖 **LLM-powered reasoning** extraction with 20k token context window
@@ -45,6 +46,7 @@ When you return, you (and Claude) have a single source of truth for the project'
 - Claude Code CLI
 - Python 3.8+
 - Git
+- Google Gemini CLI (optional, for context enrichment)
 - jq (optional, recommended)
 
 ### Quick Install
@@ -188,7 +190,13 @@ TopicDetector.detect_topics() -> Dict[topic: List[FileChange]]
 SessionAnalyzer.extract_session_context() -> SessionContext
          |                                    (uses extended thinking)
          v
-MarkdownWriter.append_session() -> writes single context.md
+MarkdownWriter.write_session_log() -> writes history/YYYY-MM-DD_topic.md
+         |
+         v
+analyze_with_skill() -> updates context.md (using Gemini/LLM)
+         |
+         v
+enrich_empty_sections() -> populates empty sections (using Gemini)
          |
          v
 copy_plan_files() -> plans/ directory
