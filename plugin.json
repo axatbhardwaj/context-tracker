@@ -1,7 +1,7 @@
 {
   "name": "context-tracker",
   "version": "1.0.0",
-  "description": "Automatic context tracking with git sync for Claude Code sessions",
+  "description": "Automatic context tracking with git sync for Claude Code and OpenCode sessions",
   "author": "user",
   "license": "MIT",
   "hooks": true,

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Claude Context Tracker - Installation Script
+# Context Tracker - Installation Script
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/scripts/setup_utils.sh"
@@ -76,7 +76,7 @@ trap cleanup EXIT
 # Main Installation
 # ============================================
 
-header "Claude Context Tracker - Installation"
+header "Context Tracker - Installation"
 echo ""
 
 # Step 1: Pre-flight checks
@@ -293,7 +293,7 @@ Automated context tracking for all Claude Code sessions.
 
 ## Usage
 
-This repository is automatically updated by the [claude-context-tracker](https://github.com/YOUR_USERNAME/claude-context-tracker) plugin.
+This repository is automatically updated by the [context-tracker](https://github.com/YOUR_USERNAME/context-tracker) plugin.
 
 Each markdown file contains session entries organized by topic (testing, api-endpoints, configuration, etc.).
 READMEEOF
@@ -394,6 +394,6 @@ echo ""
 if [ -d "$CONTEXT_DIR/.git" ] && ! git -C "$CONTEXT_DIR" remote get-url origin &>/dev/null; then
     info "Tip: Add a git remote to sync your context:"
     echo "  cd $CONTEXT_DIR"
-    echo "  git remote add origin git@github.com:YOUR_USERNAME/claude-context.git"
+    echo "  git remote add origin git@github.com:YOUR_USERNAME/context-tracker.git"
     echo "  git push -u origin main"
 fi

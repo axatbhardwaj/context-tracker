@@ -52,7 +52,7 @@ done
 # Main Uninstallation
 # ============================================
 
-header "Claude Context Tracker - Uninstallation"
+header "Context Tracker - Uninstallation"
 echo ""
 
 # Get context root before we potentially remove config
@@ -67,7 +67,7 @@ print(c.get('context_root', '~/context').replace('~', '$HOME'))
     CONTEXT_DIR=$(expand_path "$CONFIG_CONTEXT")
 fi
 
-warn "This will uninstall the Claude Context Tracker plugin."
+warn "This will uninstall the Context Tracker plugin."
 info "Your context repository at $CONTEXT_DIR will be preserved."
 echo ""
 
