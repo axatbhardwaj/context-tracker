@@ -4,10 +4,10 @@
 Uses Claude Code CLI to make LLM calls - no separate API key needed.
 """
 
-import subprocess
 import shutil
-from typing import Dict, Any
+import subprocess
 from pathlib import Path
+from typing import Any, Dict
 
 from utils.logger import get_logger
 
@@ -25,10 +25,10 @@ class LLMClient:
         """
         self.config = config
         self.provider = config.get("provider", "claude")
-        self.model = config.get('model', 'sonnet')
-        self.max_tokens = config.get('max_tokens', 20000)
+        self.model = config.get("model", "sonnet")
+        self.max_tokens = config.get("max_tokens", 20000)
 
-        self._claude_path = shutil.which('claude')
+        self._claude_path = shutil.which("claude")
         self._gemini_path = shutil.which("gemini")
 
     def generate(self, prompt: str, max_tokens: int = None) -> str:
@@ -53,19 +53,11 @@ class LLMClient:
             return self._fallback_response(prompt)
 
         try:
-            cmd = [
-                self._claude_path,
-                '--print',
-                '--model', self.model
-            ]
+            cmd = [self._claude_path, "--print", "--model", self.model]
 
             # Pass prompt via stdin to avoid shell argument length limits
             result = subprocess.run(
-                cmd,
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=120
+                cmd, input=prompt, capture_output=True, text=True, timeout=120
             )
 
             if result.returncode != 0:
@@ -114,7 +106,12 @@ class LLMClient:
             return self._fallback_response(prompt)
 
     def _fallback_response(self, prompt: str) -> str:
-        """Generate fallback when CLI unavailable."""
+        """Generate fallback when CLI unavailable.
+
+        Warning: Callers cannot distinguish fallback from real LLM output.
+        Check logs for 'Using fallback response' warnings.
+        """
+        logger.warning("Using fallback response - LLM CLI unavailable")
         if "session context" in prompt.lower():
             return ""
         return "Changes made during this session."
