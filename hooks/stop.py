@@ -7,6 +7,7 @@ import json
 import shutil
 import subprocess
 import re
+import time
 from pathlib import Path
 
 # Add plugin root to path
@@ -551,6 +552,49 @@ Generate enriched sections for empty placeholders only."""
         logger.warning(f"Enrichment failed: {e}")
 
 
+COOLDOWN_FILE = Path('/tmp/context-tracker-cooldowns.json')
+COOLDOWN_HOURS = 2
+
+
+def check_cooldown(project_path: str) -> bool:
+    """Check if cooldown period has elapsed for this project.
+
+    Returns:
+        True if hook should run, False if still in cooldown
+    """
+    if not COOLDOWN_FILE.exists():
+        return True
+
+    try:
+        cooldowns = json.loads(COOLDOWN_FILE.read_text())
+        last_run = cooldowns.get(project_path)
+        if not last_run:
+            return True
+
+        elapsed = time.time() - last_run
+        cooldown_seconds = COOLDOWN_HOURS * 3600
+        if elapsed < cooldown_seconds:
+            remaining = (cooldown_seconds - elapsed) / 60
+            logger.info(f"Cooldown active: {remaining:.0f} minutes remaining")
+            return False
+        return True
+    except Exception as e:
+        logger.warning(f"Cooldown check failed: {e}")
+        return True
+
+
+def update_cooldown(project_path: str):
+    """Update last run timestamp for this project."""
+    try:
+        cooldowns = {}
+        if COOLDOWN_FILE.exists():
+            cooldowns = json.loads(COOLDOWN_FILE.read_text())
+        cooldowns[project_path] = time.time()
+        COOLDOWN_FILE.write_text(json.dumps(cooldowns, indent=2))
+    except Exception as e:
+        logger.warning(f"Failed to update cooldown: {e}")
+
+
 def main():
     """Main entry point for Stop hook."""
     try:
@@ -571,6 +615,12 @@ def main():
 
         # Load configuration
         config = load_config()
+
+        # Check cooldown before proceeding
+        if not check_cooldown(cwd):
+            logger.info(f"Skipping due to cooldown: {cwd}")
+            print(json.dumps({}), file=sys.stdout)
+            sys.exit(0)
 
         # Check if path is excluded
         if PathClassifier.is_excluded(cwd, config):
@@ -701,6 +751,9 @@ def main():
 
         if git.commit_and_push(project_name, all_topics):
             logger.info("Changes committed and pushed to git")
+
+        # Update cooldown after successful execution
+        update_cooldown(cwd)
 
         # Success
         print(json.dumps({}), file=sys.stdout)
