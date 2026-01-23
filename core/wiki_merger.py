@@ -4,18 +4,20 @@
 Merges session context into wiki knowledge base with deduplication and rotation.
 """
 
-from typing import List
-from difflib import SequenceMatcher
 from datetime import datetime
+from difflib import SequenceMatcher
+from typing import List
 
-from core.wiki_parser import WikiKnowledge
 from core.session_analyzer import SessionContext
+from core.wiki_parser import WikiKnowledge
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-def merge_session(wiki: WikiKnowledge, session: SessionContext, max_recent: int = 5) -> WikiKnowledge:
+def merge_session(
+    wiki: WikiKnowledge, session: SessionContext, max_recent: int = 5
+) -> WikiKnowledge:
     """Merge session context into wiki knowledge base.
 
     5 recent sessions before archiving balances context vs wiki length;
@@ -30,34 +32,32 @@ def merge_session(wiki: WikiKnowledge, session: SessionContext, max_recent: int 
     Returns:
         Updated WikiKnowledge
     """
-    # 0.8 similarity threshold catches semantically similar entries without false positives
+    # 0.8 similarity threshold catches near-duplicate entries using string matching
     wiki.decisions = _deduplicate(
-        existing=wiki.decisions,
-        new_items=session.decisions_made,
-        threshold=0.8
+        existing=wiki.decisions, new_items=session.decisions_made, threshold=0.8
     )
 
     # Add problems to Issues section (deduplicated to prevent duplicate fixes)
     wiki.issues = _deduplicate(
-        existing=wiki.issues,
-        new_items=session.problems_solved,
-        threshold=0.8
+        existing=wiki.issues, new_items=session.problems_solved, threshold=0.8
     )
 
     # Rotate recent work to keep only last 5 sessions (6th drops oldest)
     if session.summary:
-        date_str = datetime.now().strftime('%Y-%m-%d')
+        date_str = datetime.now().strftime("%Y-%m-%d")
         entry = f"[{date_str}] {session.summary}"
         wiki.recent_work = _rotate_recent(wiki.recent_work, entry, max_recent)
 
     return wiki
 
 
-def _deduplicate(existing: List[str], new_items: List[str], threshold: float) -> List[str]:
+def _deduplicate(
+    existing: List[str], new_items: List[str], threshold: float
+) -> List[str]:
     """Deduplicate items using similarity threshold.
 
-    0.8 threshold catches paraphrased duplicates; exact match misses semantically
-    similar entries. Threshold tunable via config.
+    0.8 threshold catches near-duplicate entries; uses SequenceMatcher for
+    character-level comparison, not semantic similarity. Threshold tunable via config.
 
     Args:
         existing: Current items
