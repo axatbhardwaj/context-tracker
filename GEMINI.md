@@ -26,13 +26,11 @@ Automated context tracking plugin for Gemini CLI and Claude Code sessions.
 
 ## Gemini Usage
 
-To enable context tracking for Gemini CLI:
+Gemini CLI integration is planned but not yet implemented. See `Todo.md` for status.
 
-1.  **Alias**: Add this to your `.bashrc` or `.zshrc`:
-    ```bash
-    alias gemini='gemini "$@"; python3 ~/cc-context-tracker-plugin/hooks/gemini_stop.py'
-    ```
-2.  **Config**: Ensure `config/config.json` has `"provider": "gemini"`.
+To use Gemini as the LLM provider for context enrichment (not session capture):
+- Set `"provider": "gemini"` in `config/config.json`
+- Ensure the `gemini` CLI is installed and authenticated
 
 ## Build & Test
 
