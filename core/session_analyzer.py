@@ -5,9 +5,9 @@ Extracts file changes and reasoning from Claude Code sessions.
 """
 
 import json
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from utils.llm_client import LLMClient
 from utils.logger import get_logger
@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 @dataclass
 class FileChange:
     """Represents a single file change."""
+
     file_path: str
     action: str  # 'created', 'modified', 'deleted'
     description: str
@@ -28,6 +29,7 @@ class FileChange:
 @dataclass
 class SessionContext:
     """Rich context extracted from a Claude Code session."""
+
     user_goal: str = ""
     summary: str = ""
     decisions_made: List[str] = field(default_factory=list)
@@ -40,7 +42,7 @@ class SessionAnalyzer:
     """Analyzes Claude Code sessions to extract changes and reasoning."""
 
     # Tools that modify files
-    FILE_MODIFICATION_TOOLS = {'Edit', 'Write', 'MultiEdit', 'NotebookEdit'}
+    FILE_MODIFICATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 
     def __init__(self, input_data: Dict[str, Any], config: Dict[str, Any]):
         """Initialize session analyzer.
@@ -51,9 +53,9 @@ class SessionAnalyzer:
         """
         self.input_data = input_data
         self.config = config
-        self.session_id = input_data.get('session_id', 'unknown')
-        self.cwd = input_data.get('cwd', '')
-        self.llm_client = LLMClient(config.get('llm_config', {}))
+        self.session_id = input_data.get("session_id", "unknown")
+        self.cwd = input_data.get("cwd", "")
+        self.llm_client = LLMClient(config.get("llm_config", {}))
 
     def get_changes(self) -> List[FileChange]:
         """Extract all file changes from session.
@@ -64,7 +66,7 @@ class SessionAnalyzer:
         changes = []
 
         # Read session transcript if available
-        transcript_path = self.input_data.get('transcript_path')
+        transcript_path = self.input_data.get("transcript_path")
         if transcript_path and Path(transcript_path).exists():
             try:
                 tool_uses = self._parse_transcript(transcript_path)
@@ -90,23 +92,28 @@ class SessionAnalyzer:
         tool_uses = []
 
         try:
-            with open(transcript_path, 'r') as f:
+            with open(transcript_path, "r") as f:
                 for line in f:
                     try:
                         entry = json.loads(line)
 
                         # Tool uses are nested in message.content[]
-                        message = entry.get('message', {})
-                        content = message.get('content', [])
+                        message = entry.get("message", {})
+                        content = message.get("content", [])
 
                         if isinstance(content, list):
                             for item in content:
-                                if isinstance(item, dict) and item.get('type') == 'tool_use':
-                                    tool_uses.append({
-                                        'name': item.get('name'),
-                                        'input': item.get('input', {}),
-                                        'timestamp': entry.get('timestamp')
-                                    })
+                                if (
+                                    isinstance(item, dict)
+                                    and item.get("type") == "tool_use"
+                                ):
+                                    tool_uses.append(
+                                        {
+                                            "name": item.get("name"),
+                                            "input": item.get("input", {}),
+                                            "timestamp": entry.get("timestamp"),
+                                        }
+                                    )
 
                     except json.JSONDecodeError:
                         continue
@@ -117,8 +124,7 @@ class SessionAnalyzer:
         return tool_uses
 
     def _extract_changes_from_tools(
-        self,
-        tool_uses: List[Dict[str, Any]]
+        self, tool_uses: List[Dict[str, Any]]
     ) -> List[FileChange]:
         """Extract file changes from tool uses.
 
@@ -132,12 +138,12 @@ class SessionAnalyzer:
         seen_files = set()
 
         for tool in tool_uses:
-            tool_name = tool.get('name')
+            tool_name = tool.get("name")
             if tool_name not in self.FILE_MODIFICATION_TOOLS:
                 continue
 
-            tool_input = tool.get('input', {})
-            file_path = tool_input.get('file_path')
+            tool_input = tool.get("input", {})
+            file_path = tool_input.get("file_path")
 
             if not file_path:
                 continue
@@ -148,24 +154,20 @@ class SessionAnalyzer:
             seen_files.add(file_path)
 
             # Determine action
-            action = 'modified'
-            if tool_name == 'Write':
+            action = "modified"
+            if tool_name == "Write":
                 # Check if file exists to determine created vs modified
                 if not Path(file_path).exists():
-                    action = 'created'
+                    action = "created"
 
             # Extract description
             description = self._generate_change_description(
-                tool_name,
-                file_path,
-                tool_input
+                tool_name, file_path, tool_input
             )
 
-            changes.append(FileChange(
-                file_path=file_path,
-                action=action,
-                description=description
-            ))
+            changes.append(
+                FileChange(file_path=file_path, action=action, description=description)
+            )
 
         return changes
 
@@ -178,23 +180,20 @@ class SessionAnalyzer:
         changes = []
 
         # Check for tool_input in hook data
-        tool_input = self.input_data.get('tool_input', {})
-        file_path = tool_input.get('file_path')
+        tool_input = self.input_data.get("tool_input", {})
+        file_path = tool_input.get("file_path")
 
         if file_path:
-            changes.append(FileChange(
-                file_path=file_path,
-                action='modified',
-                description='Modified'
-            ))
+            changes.append(
+                FileChange(
+                    file_path=file_path, action="modified", description="Modified"
+                )
+            )
 
         return changes
 
     def _generate_change_description(
-        self,
-        tool_name: str,
-        file_path: str,
-        tool_input: Dict[str, Any]
+        self, tool_name: str, file_path: str, tool_input: Dict[str, Any]
     ) -> str:
         """Generate meaningful description of change.
 
@@ -208,41 +207,41 @@ class SessionAnalyzer:
         """
         file_name = Path(file_path).name
 
-        if tool_name == 'Write':
+        if tool_name == "Write":
             return self._describe_new_file(file_path, tool_input)
 
-        if tool_name == 'Edit':
+        if tool_name == "Edit":
             return self._describe_edit(file_path, tool_input)
 
-        if tool_name == 'MultiEdit':
-            edit_count = len(tool_input.get('edits', []))
+        if tool_name == "MultiEdit":
+            edit_count = len(tool_input.get("edits", []))
             return f"Multiple updates ({edit_count} changes)"
 
         return "Modified"
 
     def _describe_new_file(self, file_path: str, tool_input: Dict[str, Any]) -> str:
         """Describe a newly created file."""
-        content = tool_input.get('content', '')
+        content = tool_input.get("content", "")
         file_name = Path(file_path).name
         ext = Path(file_path).suffix
 
         # Detect file type and purpose
-        if 'test' in file_path.lower() or file_name.startswith('test_'):
+        if "test" in file_path.lower() or file_name.startswith("test_"):
             return "Added test file"
-        if file_name == 'conftest.py':
+        if file_name == "conftest.py":
             return "Added pytest fixtures"
-        if ext == '.md':
+        if ext == ".md":
             return "Added documentation"
-        if 'config' in file_name.lower():
+        if "config" in file_name.lower():
             return "Added configuration"
 
         # Check content for clues
-        if 'class ' in content:
-            match = self._extract_pattern(content, r'class\s+(\w+)')
+        if "class " in content:
+            match = self._extract_pattern(content, r"class\s+(\w+)")
             if match:
                 return f"Added {match} class"
-        if 'def ' in content:
-            match = self._extract_pattern(content, r'def\s+(\w+)')
+        if "def " in content:
+            match = self._extract_pattern(content, r"def\s+(\w+)")
             if match:
                 return f"Added {match} function"
 
@@ -250,24 +249,24 @@ class SessionAnalyzer:
 
     def _describe_edit(self, file_path: str, tool_input: Dict[str, Any]) -> str:
         """Describe an edit to existing file."""
-        old_text = tool_input.get('old_string', '')
-        new_text = tool_input.get('new_string', '')
+        old_text = tool_input.get("old_string", "")
+        new_text = tool_input.get("new_string", "")
 
         if not old_text or not new_text:
             return "Updated file"
 
         # Check for common patterns
-        if 'def ' in new_text and 'def ' not in old_text:
-            match = self._extract_pattern(new_text, r'def\s+(\w+)')
+        if "def " in new_text and "def " not in old_text:
+            match = self._extract_pattern(new_text, r"def\s+(\w+)")
             if match:
                 return f"Added {match} function"
 
-        if 'class ' in new_text and 'class ' not in old_text:
-            match = self._extract_pattern(new_text, r'class\s+(\w+)')
+        if "class " in new_text and "class " not in old_text:
+            match = self._extract_pattern(new_text, r"class\s+(\w+)")
             if match:
                 return f"Added {match} class"
 
-        if 'import ' in new_text and 'import ' not in old_text:
+        if "import " in new_text and "import " not in old_text:
             return "Added imports"
 
         if len(new_text) > len(old_text) * 1.5:
@@ -277,7 +276,7 @@ class SessionAnalyzer:
             return "Simplified code"
 
         # Check for fix patterns
-        if 'fix' in new_text.lower() or 'bug' in new_text.lower():
+        if "fix" in new_text.lower() or "bug" in new_text.lower():
             return "Fixed bug"
 
         return "Updated logic"
@@ -285,6 +284,7 @@ class SessionAnalyzer:
     def _extract_pattern(self, text: str, pattern: str) -> str:
         """Extract first match from text using regex."""
         import re
+
         match = re.search(pattern, text)
         return match.group(1) if match else ""
 
@@ -301,10 +301,12 @@ class SessionAnalyzer:
             return "No changes detected."
 
         # Build prompt
-        change_summary = '\n'.join([
-            f"- {c.action.capitalize()} `{c.file_path}`: {c.description}"
-            for c in changes[:10]  # Limit to first 10 for token budget
-        ])
+        change_summary = "\n".join(
+            [
+                f"- {c.action.capitalize()} `{c.file_path}`: {c.description}"
+                for c in changes[:10]  # Limit to first 10 for token budget
+            ]
+        )
 
         # Get transcript context (last 2000 chars)
         context = self._get_recent_context()
@@ -323,7 +325,7 @@ Respond with reasoning only (no code, no implementation details):"""
         try:
             reasoning = self.llm_client.generate(
                 prompt=prompt,
-                max_tokens=self.config.get('llm_config', {}).get('max_tokens', 150)
+                max_tokens=self.config.get("llm_config", {}).get("max_tokens", 150),
             )
             return reasoning.strip()
         except Exception as e:
@@ -340,12 +342,12 @@ Respond with reasoning only (no code, no implementation details):"""
         Returns:
             Recent transcript context
         """
-        transcript_path = self.input_data.get('transcript_path')
+        transcript_path = self.input_data.get("transcript_path")
         if not transcript_path or not Path(transcript_path).exists():
             return ""
 
         try:
-            with open(transcript_path, 'r') as f:
+            with open(transcript_path, "r") as f:
                 content = f.read()
                 # Take last max_chars
                 return content[-max_chars:] if len(content) > max_chars else content
@@ -366,16 +368,18 @@ Respond with reasoning only (no code, no implementation details):"""
             action_counts[change.action] = action_counts.get(change.action, 0) + 1
 
         parts = []
-        if action_counts.get('created'):
+        if action_counts.get("created"):
             parts.append(f"Created {action_counts['created']} file(s)")
-        if action_counts.get('modified'):
+        if action_counts.get("modified"):
             parts.append(f"modified {action_counts['modified']} file(s)")
-        if action_counts.get('deleted'):
+        if action_counts.get("deleted"):
             parts.append(f"deleted {action_counts['deleted']} file(s)")
 
         return f"Session involved {', '.join(parts)} in the project."
 
-    def extract_session_context(self, changes: List[FileChange], topics: List[str] = None) -> SessionContext:
+    def extract_session_context(
+        self, changes: List[FileChange], topics: List[str] = None
+    ) -> SessionContext:
         """Extract rich session context using LLM analysis.
 
         Args:
@@ -391,12 +395,12 @@ Respond with reasoning only (no code, no implementation details):"""
 
         # Topics passed to LLM for inline tagging (consolidation approach)
         if not topics:
-            topics = ['general-changes']
-        topic_tags = ', '.join(f'[{t}]' for t in topics)
+            topics = ["general-changes"]
+        topic_tags = ", ".join(f"[{t}]" for t in topics)
 
-        change_summary = '\n'.join([
-            f"- {c.action}: {c.file_path}" for c in changes[:15]
-        ])
+        change_summary = "\n".join(
+            [f"- {c.action}: {c.file_path}" for c in changes[:15]]
+        )
 
         # Prompt requests single summary with inline topic tags for all detected topics
         prompt = f"""Analyze this Claude Code session transcript and extract a consolidated summary.
@@ -429,7 +433,9 @@ FUTURE_WORK:
 CATEGORY: <category>"""
 
         try:
-            # 2k tokens sufficient for goal(200) + summary(400) + decisions(400) + problems(400) + future(400) + tags(200)
+            # Session context needs more tokens than reasoning extraction:
+            # goal(200) + summary(400) + decisions(400) + problems(400) + future(400) + tags(200) = ~2k
+            # This is intentionally higher than extract_reasoning() which only needs ~150 tokens
             response = self.llm_client.generate(prompt, max_tokens=2000)
             if not response or not response.strip():
                 logger.info("LLM returned empty response, using fallback")
@@ -453,12 +459,12 @@ CATEGORY: <category>"""
         Returns:
             Truncated transcript content
         """
-        transcript_path = self.input_data.get('transcript_path')
+        transcript_path = self.input_data.get("transcript_path")
         if not transcript_path or not Path(transcript_path).exists():
             return ""
 
         try:
-            with open(transcript_path, 'r') as f:
+            with open(transcript_path, "r") as f:
                 content = f.read()
                 if len(content) > max_chars:
                     # Take last portion for recency
@@ -471,7 +477,7 @@ CATEGORY: <category>"""
         """Parse LLM response into SessionContext."""
         ctx = SessionContext()
 
-        lines = response.strip().split('\n')
+        lines = response.strip().split("\n")
         current_section = None
 
         for line in lines:
@@ -479,27 +485,27 @@ CATEGORY: <category>"""
             if not line:
                 continue
 
-            if line.startswith('USER_GOAL:'):
-                ctx.user_goal = line.replace('USER_GOAL:', '').strip()
-            elif line.startswith('SUMMARY:'):
-                ctx.summary = line.replace('SUMMARY:', '').strip()
-            elif line.startswith('CATEGORY:'):
-                ctx.category = line.replace('CATEGORY:', '').strip().lower()
-            elif line.startswith('DECISIONS:'):
-                current_section = 'decisions'
-            elif line.startswith('PROBLEMS_SOLVED:'):
-                current_section = 'problems'
-            elif line.startswith('FUTURE_WORK:'):
-                current_section = 'future'
-            elif line.startswith('- ') and current_section:
+            if line.startswith("USER_GOAL:"):
+                ctx.user_goal = line.replace("USER_GOAL:", "").strip()
+            elif line.startswith("SUMMARY:"):
+                ctx.summary = line.replace("SUMMARY:", "").strip()
+            elif line.startswith("CATEGORY:"):
+                ctx.category = line.replace("CATEGORY:", "").strip().lower()
+            elif line.startswith("DECISIONS:"):
+                current_section = "decisions"
+            elif line.startswith("PROBLEMS_SOLVED:"):
+                current_section = "problems"
+            elif line.startswith("FUTURE_WORK:"):
+                current_section = "future"
+            elif line.startswith("- ") and current_section:
                 item = line[2:].strip()
-                if item.lower() == 'none':
+                if item.lower() == "none":
                     continue
-                if current_section == 'decisions':
+                if current_section == "decisions":
                     ctx.decisions_made.append(item)
-                elif current_section == 'problems':
+                elif current_section == "problems":
                     ctx.problems_solved.append(item)
-                elif current_section == 'future':
+                elif current_section == "future":
                     ctx.future_work.append(item)
 
         return ctx
@@ -521,5 +527,5 @@ CATEGORY: <category>"""
             summary=summary,
             decisions_made=[],
             problems_solved=[],
-            future_work=[]
+            future_work=[],
         )
