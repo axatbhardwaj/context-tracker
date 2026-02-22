@@ -469,16 +469,6 @@ The plugin uses a 50,000 character input context (~12,000 tokens) for transcript
 
 ### Advanced Configuration
 
-#### Auto-Confirmation
-
-To skip interactive prompts (useful for CI/CD or automated workflows):
-
-```bash
-export CONTEXT_TRACKER_AUTO_CONFIRM=1
-```
-
-When set, the plugin will automatically proceed without prompting for confirmation. The plugin also auto-confirms when running in non-interactive mode (no TTY).
-
 #### Cooldown Period
 
 The plugin implements a 2-hour cooldown per project to prevent excessive executions. If you end multiple sessions within 2 hours, subsequent runs will be skipped automatically. The cooldown state is tracked in `/tmp/context-tracker-cooldowns.json`.

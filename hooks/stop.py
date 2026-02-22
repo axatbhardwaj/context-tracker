@@ -132,96 +132,27 @@ def _save_confirmed_project(info, config: dict) -> bool:
     return True
 
 
-def _build_prompt_message(info) -> str:
-    """Build confirmation prompt message.
-
-    Called by prompt_monorepo_confirmation to format user prompt.
-
-    Args:
-        info: MonorepoInfo from detection
-
-    Returns:
-        Formatted prompt string
-    """
-    return (
-        f"\nDetected {info.type} monorepo at {info.root}.\n"
-        f"Workspace: {info.workspace_relative}\n"
-        "Use hierarchical context? [Y/n]: "
-    )
-
-
-def _get_user_confirmation() -> bool:
-    """Get user confirmation from stdin.
-
-    Called by prompt_monorepo_confirmation to read user input.
-    Empty response treated as Yes for faster workflow.
-    Auto-confirms if CONTEXT_TRACKER_AUTO_CONFIRM=1 or stdin is not a TTY.
-
-    Returns:
-        True if user confirms
-    """
-    # Auto-confirm if env var set or not running interactively
-    if os.environ.get('CONTEXT_TRACKER_AUTO_CONFIRM') == '1':
-        logger.info("Auto-confirming (CONTEXT_TRACKER_AUTO_CONFIRM=1)")
-        return True
-    if not sys.stdin.isatty():
-        logger.info("Auto-confirming (non-interactive mode)")
-        return True
-    try:
-        response = input().strip().lower()
-        return response in ('', 'y', 'yes')
-    except (EOFError, KeyboardInterrupt):
-        print(file=sys.stderr)
-        return False
-
-
 def prompt_monorepo_confirmation(info, config: dict) -> bool:
-    """Prompt user to confirm hierarchical context for monorepo.
+    """Auto-confirm hierarchical context for monorepo and cache the decision.
 
-    Prints to stderr: hook stdout reserved for automation, stderr for user interaction.
+    Stop hooks run async without a terminal, so interactive prompts are
+    impossible. Always confirms and caches for consistency.
 
     Args:
         info: MonorepoInfo from detection
         config: Plugin configuration
 
     Returns:
-        True if user confirms hierarchical mode
+        True always
     """
     if _is_previously_confirmed(info, config):
         logger.info(f"Monorepo {info.root} previously confirmed")
         return True
 
-    prompt = _build_prompt_message(info)
-    print(prompt, file=sys.stderr, end='', flush=True)
-
-    confirmed = _get_user_confirmation()
-    if confirmed:
-        if not _save_confirmed_project(info, config):
-            logger.warning("Monorepo confirmation not cached; will re-prompt on next session")
-        logger.info(f"Monorepo confirmed: {info.root}")
-
-    return confirmed
-
-
-def confirm_execution(topics_map: dict) -> bool:
-    """Ask user for confirmation before proceeding with expensive operations.
-
-    Args:
-        topics_map: Dictionary of detected topics
-
-    Returns:
-        True if user confirms or if input is empty/y/yes
-    """
-    # Use stderr to keep stdout clean for JSON output (pipe safety)
-    print("\nDetected topics:", file=sys.stderr)
-    if topics_map:
-        for topic in topics_map:
-            print(f"  - {topic}", file=sys.stderr)
-    else:
-        print("  - general-changes", file=sys.stderr)
-
-    print("\nGenerate context and push changes? [Y/n]: ", file=sys.stderr, end='', flush=True)
-    return _get_user_confirmation()
+    if not _save_confirmed_project(info, config):
+        logger.warning("Monorepo confirmation not cached; will re-prompt on next session")
+    logger.info(f"Monorepo auto-confirmed: {info.root}")
+    return True
 
 
 def extract_cwd_from_transcript(transcript_path: str) -> str:
@@ -692,12 +623,6 @@ def main():
         detector = TopicDetector(config)
         topics_map = detector.detect_topics(changes)
         all_topics = list(topics_map.keys())
-
-        # Prompt gives user control over execution
-        if not confirm_execution(topics_map):
-            logger.info("User skipped context generation")
-            print(json.dumps({}), file=sys.stdout)
-            sys.exit(0)
 
         # Snapshot existing files before generation for quality review
         arch_path = context_path.parent / "architecture.md"
