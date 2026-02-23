@@ -636,42 +636,49 @@ def main():
         # Session content formatted in-memory — no history file written (ref: DL-006)
         writer = MarkdownWriter(config)
         session_content = writer._format_session_entry(all_topics, changes, session_ctx.summary, session_ctx)
-        # Writer agent: update context.md (sonnet)
-        logger.info("Updating context.md via writer agent...")
-        skill_result = update_context_wiki(
-            session_content,
-            str(context_path),
-            all_topics,
-            config,
-        )
 
-        if skill_result.get('status') == 'error':
-            logger.warning(f"Writer agent failed: {skill_result.get('error')}")
-        else:
-            logger.info(f"Updated context: {skill_result.get('context_path')}")
-
-        # Architect agent: update architecture.md (opus)
+        # Architect agent: update architecture.md (opus) — run once
         generate_architecture(context_path, cwd, config)
 
-        # Quality review gate: validate generated files before commit
-        logger.info("Running quality review...")
-        review = review_generated_files(
-            str(context_path),
-            str(arch_path),
-            old_context or "",
-            old_arch or "",
-            config,
-        )
-        logger.info(f"Quality review verdict: {review['verdict']}")
+        # Writer agent + quality review with retry (up to 3 attempts)
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            # On retry, restore context.md to pre-generation state
+            if attempt > 1:
+                logger.info(f"Retrying writer agent (attempt {attempt}/{max_attempts})...")
+                if old_context is not None:
+                    Path(context_path).write_text(old_context)
+                elif Path(context_path).exists():
+                    Path(context_path).unlink()
 
-        if review['verdict'] in ('NEEDS_CHANGES', 'MUST_ISSUES'):
-            logger.warning(f"Quality review failed ({review['verdict']}), reverting files")
-            backups = {str(context_path): old_context}
-            # Keep newly-created architecture.md — having one is better than none
-            if old_arch is not None:
-                backups[str(arch_path)] = old_arch
-            _revert_files(backups)
-            logger.info("Reverted to pre-generation state")
+            # Writer agent: update context.md (sonnet)
+            logger.info("Updating context.md via writer agent...")
+            skill_result = update_context_wiki(
+                session_content,
+                str(context_path),
+                all_topics,
+                config,
+            )
+
+            if skill_result.get('status') == 'error':
+                logger.warning(f"Writer agent failed: {skill_result.get('error')}")
+
+            # Quality review gate
+            logger.info("Running quality review...")
+            review = review_generated_files(
+                str(context_path),
+                str(arch_path),
+                old_context or "",
+                old_arch or "",
+                config,
+            )
+            logger.info(f"Quality review verdict: {review['verdict']} (attempt {attempt}/{max_attempts})")
+
+            if review['verdict'] not in ('NEEDS_CHANGES', 'MUST_ISSUES'):
+                break
+        else:
+            # All attempts exhausted — keep generated files (some context > no context)
+            logger.warning(f"Quality review failed after {max_attempts} attempts, keeping generated files")
 
         # Root context captures cross-cutting decisions for monorepos
         if len(context_paths) > 1:
