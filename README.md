@@ -1,5 +1,7 @@
 # Claude Context Tracker
 
+> **Archived.** Claude Code now has [built-in auto memory](https://docs.anthropic.com/en/docs/claude-code/memory) (`~/.claude/projects/*/memory/`) that auto-loads persistent context per project. This project is no longer maintained.
+
 ## The Problem
 You start a Claude Code session, build a feature, and exit. Two weeks later, you return. **Context is gone.**
 *   "Why did I choose this library?"
